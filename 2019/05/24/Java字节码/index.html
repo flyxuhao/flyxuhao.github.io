@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="记录技术的成长">
+    <meta name="keyword" content>
+    <link rel="shortcut icon" href="/img/ironman-draw.png">
+    <!-- Place this tag in your head or just before your close body tag. -->
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <title>
+        
+          Java字节码解读 - null
+        
+    </title>
+
+    <link rel="canonical" href="https://xhtech.xyz/2019/05/24/Java字节码/">
+
+    <!-- Bootstrap Core CSS -->
+
+   <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
+
+    
+
+    <!-- Custom CSS --> 
+    <link rel="stylesheet" href="/css/beantech.min.css">
+
+    <link rel="stylesheet" href="/css/donate.css">
+	<link rel="stylesheet" href="/css/w3.css">
+    <!-- Pygments Highlight CSS -->
+    <link rel="stylesheet" href="/css/highlight.css">
+
+    <link rel="stylesheet" href="/css/widget.css">
+
+    <link rel="stylesheet" href="/css/rocket.css">
+
+    <link rel="stylesheet" href="/css/signature.css">
+
+    <link rel="stylesheet" href="/css/toc.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="https://cdn.staticfile.org/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+	<!-- Modified by Yu-Hsuan Yen -->
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+    }
+   .post-heading{
+    padding:20px;
+    }
+  .person {
+    border: 10px solid transparent;
+    margin-bottom: 25px;
+    width: 80%;
+    height: 80%;
+    opacity: 0.7;
+  }
+  .person:hover {
+    border-color: #f1f1f1;
+  }
+
+</style>
+
+<header id="headerid" class="w3-indigo intro-header" style="position:relative;">
+    <!-- Signature -->
+	
+        <div class="container">
+            <div class=" row">
+			
+			<canvas id="particles-js-canvas" style="position:absolute;z-index:1;top:0px;left:0px;" width="100%" height="50%"></canvas>
+			
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1" style="z-index:2;">
+                
+                    <div class="post-heading" style="padding:40px">
+                        <div class="tags">
+                            
+                        </div>
+                        <h1>Java字节码解读</h1>
+                        <h2 class="subheading"></h2>
+                        <span class="meta">
+                            Posted by 徐浩 on
+                            2019-05-24
+                        </span>
+                    </div>
+                
+                </div>
+            </div>
+        </div>
+  
+</header>
+
+	
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">徐浩的博客</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Homepage</a>
+                    </li>
+
+                    
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Main Content -->
+    <!-- Modify by Yu-Hsuan Yen -->
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+            <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                <h3 id="Java字节码解读"><a href="#Java字节码解读" class="headerlink" title="Java字节码解读"></a>Java字节码解读</h3><p>Duang，领导给你发来一段代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">package com.cc.asmdemo;</span><br><span class="line"></span><br><span class="line">public class JavaDemo &#123;</span><br><span class="line">    private int value = 1;</span><br><span class="line"></span><br><span class="line">    public void setValue() &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这？？？</p>
+<p>代码保存一下，然后再给你一顿操作：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">javac -g JavaDemo.java</span><br><span class="line">javap -verbose JavaDemo</span><br></pre></td></tr></table></figure>
+<p>控制台出现了下面这一段：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">public class com.cc.asmdemo.JavaDemo</span><br><span class="line">  minor version: 0</span><br><span class="line">  major version: 52</span><br><span class="line">  flags: ACC_PUBLIC, ACC_SUPER</span><br><span class="line">Constant pool:</span><br><span class="line">   #1 = Methodref          #4.#17         // java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span><br><span class="line">   #2 = Fieldref           #3.#18         // com/cc/asmdemo/JavaDemo.value:I</span><br><span class="line">   #3 = Class              #19            // com/cc/asmdemo/JavaDemo</span><br><span class="line">   #4 = Class              #20            // java/lang/Object</span><br><span class="line">   #5 = Utf8               value</span><br><span class="line">   #6 = Utf8               I</span><br><span class="line">   #7 = Utf8               &lt;init&gt;</span><br><span class="line">   #8 = Utf8               ()V</span><br><span class="line">   #9 = Utf8               Code</span><br><span class="line">  #10 = Utf8               LineNumberTable</span><br><span class="line">  #11 = Utf8               LocalVariableTable</span><br><span class="line">  #12 = Utf8               this</span><br><span class="line">  #13 = Utf8               Lcom/cc/asmdemo/JavaDemo;</span><br><span class="line">  #14 = Utf8               setValue</span><br><span class="line">  #15 = Utf8               SourceFile</span><br><span class="line">  #16 = Utf8               JavaDemo.java</span><br><span class="line">  #17 = NameAndType        #7:#8          // &quot;&lt;init&gt;&quot;:()V</span><br><span class="line">  #18 = NameAndType        #5:#6          // value:I</span><br><span class="line">  #19 = Utf8               com/cc/asmdemo/JavaDemo</span><br><span class="line">  #20 = Utf8               java/lang/Object</span><br><span class="line">&#123;</span><br><span class="line">  public com.cc.asmdemo.JavaDemo();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=2, locals=1, args_size=1</span><br><span class="line">         0: aload_0</span><br><span class="line">         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span><br><span class="line">         4: aload_0</span><br><span class="line">         5: iconst_1</span><br><span class="line">         6: putfield      #2                  // Field value:I</span><br><span class="line">         9: return</span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line 3: 0</span><br><span class="line">        line 4: 4</span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            0      10     0  this   Lcom/cc/asmdemo/JavaDemo;</span><br><span class="line"></span><br><span class="line">  public void setValue();</span><br><span class="line">    descriptor: ()V</span><br><span class="line">    flags: ACC_PUBLIC</span><br><span class="line">    Code:</span><br><span class="line">      stack=0, locals=1, args_size=1</span><br><span class="line">         0: return</span><br><span class="line">      LineNumberTable:</span><br><span class="line">        line 7: 0</span><br><span class="line">      LocalVariableTable:</span><br><span class="line">        Start  Length  Slot  Name   Signature</span><br><span class="line">            0       1     0  this   Lcom/cc/asmdemo/JavaDemo;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>“似乎，有点看不太懂…”</p>
+<p>然后，只见领导飞速下载了<a href="http://ridiculousfish.com/hexfiend/" target="_blank" rel="noopener">Hex Friend</a>，用它打开了JavaDemo.class文件。然后，终于出现了终极Boss：<br><img src="/Users/xuhao/Desktop/字节码.png" alt><br>“能帮我分析下这段字节码？或者…通过这段字节码可以还原出java代码吗？”</p>
+<p>“这个…” 面露难色，虽然不知道有啥用，咱也不敢问呐。<br>“尽快搞定，不然，这个季度的绩效，哼哼”</p>
+<p>那就赶紧学起来<br><strong>Java字节码</strong>是Java虚拟机（以下简称JVM）执行的一种指令格式。当我们在写Java程序时，代码是写在java文件中的，然而JVM执行的是字节码文件，也就class文件，Java文件会被编译成class文件。最近升任Android官方第一开发语言的Kotlin，最后也会被编译成class文件。<br>Java字节码看起来平常开发都用不上，但是了解Java字节码，对理解Java虚拟机的执行原理是必须的，而熟悉Java虚拟机执行的原理，才能掌握Java深层的优化技术。<br>先来看看class文件的结构是什么样的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">ClassFile &#123; </span><br><span class="line">    u4 magic; </span><br><span class="line">    u2 minor_version; </span><br><span class="line">    u2 major_version; </span><br><span class="line">    u2 constant_pool_count; </span><br><span class="line">    cp_info constant_pool[constant_pool_count-1]; </span><br><span class="line">    u2 access_flags; </span><br><span class="line">    u2 this_class; </span><br><span class="line">    u2 super_class; </span><br><span class="line">    u2 interfaces_count; </span><br><span class="line">    u2 interfaces[interfaces_count]; </span><br><span class="line">    u2 fields_count; field_info fields[fields_count]; </span><br><span class="line">    u2 methods_count; method_info methods[methods_count]; </span><br><span class="line">    u2 attributes_count; attribute_info;</span><br><span class="line">    attributes[attributes_count];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>class文件由无符号数和表组成，u1、u2、u4分别表示1、2、4个字节的无符号数，而_info结尾的这个表示表。<br>接下来我们就来解析class文件的每一项：</p>
+<h4 id="magic-魔数-u4"><a href="#magic-魔数-u4" class="headerlink" title="magic 魔数 u4"></a>magic 魔数 u4</h4><p>对应于开头点的四个字节：<strong>0xCAFEBABE</strong>，每个class文件这个四个字节都是固定的，用来表示这是一个能被虚拟机识别的class文件。实际上，文件的名字xxx.class就已经表示了这是一个class文件，之所以要在文件中再进行标识，是因为文件名很容易被修改，不太安全。很多其它类型的文件，也用了这个方式来标识文件类型。</p>
+<h4 id="minor-version-文件的副版本号-u2"><a href="#minor-version-文件的副版本号-u2" class="headerlink" title="minor_version 文件的副版本号 u2"></a>minor_version 文件的副版本号 u2</h4><p><strong>0x0000</strong>表示副版本号为0</p>
+<h4 id="major-version-文件的主版本号-u2"><a href="#major-version-文件的主版本号-u2" class="headerlink" title="major_version 文件的主版本号 u2"></a>major_version 文件的主版本号 u2</h4><p><strong>0x0034</strong>表示主版本号为52，对应于jdk1.8，加上副版本号0，所以这个文件对应的版本是1.8.0。</p>
+<h4 id="constant-pool-count-常量池计数器-u2"><a href="#constant-pool-count-常量池计数器-u2" class="headerlink" title="constant_pool_count 常量池计数器 u2"></a>constant_pool_count 常量池计数器 u2</h4><p><strong>0x0015</strong>表示constant_pool表的大小为21减1，即20。之所以要减一，是因为设计者特意将索引为0的项保留下来了。所以，常量池的索引是从1开始，到20。</p>
+<h4 id="cp-info-constant-pool-常量池"><a href="#cp-info-constant-pool-常量池" class="headerlink" title="cp_info constant_pool 常量池"></a>cp_info constant_pool 常量池</h4><p>常量池中的常量有<u>字面量</u>和<u>符号引用</u>两类，文本字符串和声明为final的常量值等属于字面量，而符号引用则包括类和接口的<u>全局限定名</u>、字段的名称和描述符、方法的名称和描述符。<br>由计数器我们知道了常量池中一共有索引从1开始的20项。而这20项的类型和大小也都是不一样的。每一项的第一个字节表示它的类型，根据不同的类型，我们可以知道这一项的内容。jdk1.7之前，常量池中一共有11种类型：<br><img src="/Users/xuhao/Desktop/常量池类型.png" alt><br>jdk1.7之后又增加了三种：<br>CONSTANT_MethodHandle_info<br>CONSTANT_MethodType_info<br>CONSTANT_InvokeDynamic_info<br>所以一共是14种。<br>表中的tag标识常量的类型，比如tag=1则表示常量类型为CONSTANT_MethodHandle_info，index表示索引。<br>对照表中，就可以根据字节码看出这20个常量分别表示什么：</p>
+<h5 id="Constant-1-0x0A-0004-0011"><a href="#Constant-1-0x0A-0004-0011" class="headerlink" title="Constant #1  0x0A 0004 0011"></a>Constant #1  0x0A 0004 0011</h5><p>0x0A 十进制为10，对应类型10，也就是CONSTANT_MethodRef_info<br>0x0004 由表中可以知道，MethodRef_info的后面两个字节表示指向方法的类描述符CONSTANT_Class_info的索引项，0x0004则表示索引到第四项，也就是表示类描述符是’java/lang/Object’<br>0x0011 再往后两个字节表示字段描述符CONSTANT_NameAndType_info的索引项，0x0011也就是表示索引到第17项，也就是表示字段描述符是’<init>‘</init></p>
+<h5 id="Constant-2-0x09-0003-0012"><a href="#Constant-2-0x09-0003-0012" class="headerlink" title="Constant #2  0x09 0003 0012"></a>Constant #2  0x09 0003 0012</h5><p>0x09 对照表中第9项，即表示CONSTANT_Fieldref_info<br>0x0003 索引到第3项，即类描述符为’com/cc/asmdemo/JavaDemo’<br>0x0012 索引到第18项，即字段描述符为’value:I’</p>
+<h5 id="Constant-3-0x07-0013"><a href="#Constant-3-0x07-0013" class="headerlink" title="Constant #3 0x07 0013"></a>Constant #3 0x07 0013</h5><p>0x07 表示CONSTANT_Class_info<br>0x13 索引到第19项的全限定名，即’com/cc/asmdemo/JavaDemo’</p>
+<h5 id="Constant-4-0x07-0014"><a href="#Constant-4-0x07-0014" class="headerlink" title="Constant #4 0x07 0014"></a>Constant #4 0x07 0014</h5><p>0x07 表示CONSTANT_Class_info<br>0x14 索引到第20项的全限定名 ‘java/lang/Object’</p>
+<h5 id="Constant-5-0x01-0005-7661-6C75-65"><a href="#Constant-5-0x01-0005-7661-6C75-65" class="headerlink" title="Constant #5 0x01 0005 7661 6C75 65"></a>Constant #5 0x01 0005 7661 6C75 65</h5><p>0x01 表示CONSTANT_Utf8_info<br>0x0005 UTF-8编码的字符串长度为5<br>0x76616C7565 字符串长度为5，对应ASCII码表查找，每一个字节对应一个字符，如76对应于ASCII码表的第118项’v’，以此类推可以找到’a’、’l’、’u’、’e’，即’value’</p>
+<h5 id="Constant-6-0x01-0001-49"><a href="#Constant-6-0x01-0001-49" class="headerlink" title="Constant #6 0x01 0001 49"></a>Constant #6 0x01 0001 49</h5><p>0x01 表示CONSTANT_Utf8_info<br>0x0001 UTF-8编码的字符串长度为1<br>0x49 表示’I’</p>
+<h5 id="Constant-7-0x01-0006-3C69-6E69-743E"><a href="#Constant-7-0x01-0006-3C69-6E69-743E" class="headerlink" title="Constant #7 0x01 0006 3C69 6E69 743E"></a>Constant #7 0x01 0006 3C69 6E69 743E</h5><p>0x01 表示CONSTANT_Utf8_info<br>0x0006 UTF-8编码的字符串长度为6<br>0x3C69 6E69 743E 表示’<init>‘</init></p>
+<h4 id="Constant-8-0x01-0003-2829-56"><a href="#Constant-8-0x01-0003-2829-56" class="headerlink" title="Constant #8 0x01 0003 2829 56"></a>Constant #8 0x01 0003 2829 56</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0003 UTF-8编码的字符串长度为3<br>0x2829 56 表示’()V’</p>
+<h4 id="Constant-9-0x01-0004-436F-6465"><a href="#Constant-9-0x01-0004-436F-6465" class="headerlink" title="Constant #9 0x01 0004 436F 6465"></a>Constant #9 0x01 0004 436F 6465</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0004 UTF-8编码的字符串长度为4<br>0x436F 6465 表示’Code’</p>
+<h4 id="Constant-10-0x01-000F-4C69…6C65"><a href="#Constant-10-0x01-000F-4C69…6C65" class="headerlink" title="Constant #10 0x01 000F 4C69…6C65"></a>Constant #10 0x01 000F 4C69…6C65</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x000F UTF-8编码的字符串长度为15<br>0x4C69…6C65 表示’LineNumberTable’</p>
+<h4 id="Constant-11-0x01-0012-4C6F…6C65"><a href="#Constant-11-0x01-0012-4C6F…6C65" class="headerlink" title="Constant #11 0x01 0012 4C6F…6C65"></a>Constant #11 0x01 0012 4C6F…6C65</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0012 UTF-8编码的字符串长度为18<br>0x4C6F6…6C65 表示’LocalVariableTable’</p>
+<h4 id="Constant-12-0x01-0004-7468-6973"><a href="#Constant-12-0x01-0004-7468-6973" class="headerlink" title="Constant #12 0x01 0004 7468 6973"></a>Constant #12 0x01 0004 7468 6973</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0004 UTF-8编码的字符串长度为4<br>0x7468 6973 表示’this’</p>
+<h4 id="Constant-13-0x01-0019-4C63…6F3B"><a href="#Constant-13-0x01-0019-4C63…6F3B" class="headerlink" title="Constant #13 0x01 0019 4C63…6F3B"></a>Constant #13 0x01 0019 4C63…6F3B</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0019 UTF-8编码的字符串长度为25<br>0x4C63…6F3B 表示’Lcom/cc/asmdemo/JavaDemo;’</p>
+<h4 id="Constant-14-0x01-0008-7365…7565"><a href="#Constant-14-0x01-0008-7365…7565" class="headerlink" title="Constant #14 0x01 0008 7365…7565"></a>Constant #14 0x01 0008 7365…7565</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0008 UTF-8编码的字符串长度为8<br>0x7365…7565 表示’setValue’</p>
+<h4 id="Constant-15-01-0x000A-536F…6C65"><a href="#Constant-15-01-0x000A-536F…6C65" class="headerlink" title="Constant #15 01 0x000A 536F…6C65"></a>Constant #15 01 0x000A 536F…6C65</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x000A UTF-8编码的字符串长度为10<br>0x536F…6C65 表示’SourceFile’</p>
+<h4 id="Constant-16-0x01-000D-4A61…7661"><a href="#Constant-16-0x01-000D-4A61…7661" class="headerlink" title="Constant #16 0x01 000D 4A61…7661"></a>Constant #16 0x01 000D 4A61…7661</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x000D UTF-8编码的字符串长度为13<br>0x54A61…7661 表示’JavaDemo.java’</p>
+<h4 id="Constant-17-0x0C-0007-0008"><a href="#Constant-17-0x0C-0007-0008" class="headerlink" title="Constant #17 0x0C 0007 0008"></a>Constant #17 0x0C 0007 0008</h4><p>0x0C 表示CONSTANT_NameAndType_info<br>0x0007 索引到第7项，也就是字段或方法名称为’<init>‘<br>0x0008 索引到第8项，也就是字段或方法描述符为’()V’</init></p>
+<h4 id="Constant-18-0x0C-0005-0006"><a href="#Constant-18-0x0C-0005-0006" class="headerlink" title="Constant #18 0x0C 0005 0006"></a>Constant #18 0x0C 0005 0006</h4><p>0x0C 表示CONSTANT_NameAndType_info<br>0x0005 索引到第7项，也就是字段或方法名称为’value’<br>0x0006 索引到第8项，也就是字段或方法描述符为’I’</p>
+<h4 id="Constant-19-0x01-0017-636F…6D6F"><a href="#Constant-19-0x01-0017-636F…6D6F" class="headerlink" title="Constant #19 0x01 0017 636F…6D6F"></a>Constant #19 0x01 0017 636F…6D6F</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0017 UTF-8编码的字符串长度为23<br>0x636F…6D6F 表示’com/cc/asmdemo/JavaDemo’</p>
+<h4 id="Constant-20-0x01-0010-6A61…6374"><a href="#Constant-20-0x01-0010-6A61…6374" class="headerlink" title="Constant #20 0x01 0010 6A61…6374"></a>Constant #20 0x01 0010 6A61…6374</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0010 UTF-8编码的字符串长度为16<br>0x6A61…6374 表示’ java/lang/Object’</p>
+<h3 id="access-flags-访问标志-u2"><a href="#access-flags-访问标志-u2" class="headerlink" title="access_flags 访问标志 u2"></a>access_flags 访问标志 u2</h3><p>access_flags表示该Class文件的访问权限和基本属性，可以通过下表来查询：<br><img src="/Users/xuhao/Desktop/access_flag.png" alt><br>可以看到当前的文件的Access_Flag为0x0021，是0x0020和0x21的并集，即表示ACC_PUBLIC和ACC_SUPER</p>
+<h3 id="this-class-类索引-u2"><a href="#this-class-类索引-u2" class="headerlink" title="this_class 类索引 u2"></a>this_class 类索引 u2</h3><p>0x0003表示索引到常量池的第三项，也就是当前类的全限定名为’com/cc/asmdemo/JavaDemo’</p>
+<h3 id="super-class-父类索引-u2"><a href="#super-class-父类索引-u2" class="headerlink" title="super_class 父类索引 u2"></a>super_class 父类索引 u2</h3><p>0x0004表示索引到常量池的第四项，也就是当父类的全限定名为’java/lang/Object’,可以知道当前类是继承自Object的</p>
+<h3 id="interfaces-count-接口数量-u2"><a href="#interfaces-count-接口数量-u2" class="headerlink" title="interfaces_count 接口数量 u2"></a>interfaces_count 接口数量 u2</h3><p>接口数量为0x0000，所以当前类没有接口</p>
+<h3 id="interfaces-interfaces-count-接口表"><a href="#interfaces-interfaces-count-接口表" class="headerlink" title="interfaces[interfaces_count] 接口表"></a>interfaces[interfaces_count] 接口表</h3><p>由于接口数量为0，所以接口表没有</p>
+<h3 id="fields-count-字段数量-u2"><a href="#fields-count-字段数量-u2" class="headerlink" title="fields_count 字段数量 u2"></a>fields_count 字段数量 u2</h3><p>0x0001表示有一个字段</p>
+<h3 id="field-info-fields-fields-count-字段表"><a href="#field-info-fields-fields-count-字段表" class="headerlink" title="field_info fields[fields_count] 字段表"></a>field_info fields[fields_count] 字段表</h3><p>为了描述字段，我们可以对照下面这个字段结构表示图：<br><img src="/Users/xuhao/Desktop/字段表.jpeg" alt><br>所以当前这个字段可以用这几个字节码表示<br>0x0002 访问标志位为ACC_PRIVATE<br>0x0005 字段名称索引到常量表第五项，即’value’<br>0x0006 字段描述符索引到第六项，即’I’<br>0x0000 属性表数量为0，即没有属性表</p>
+<h3 id="fields-count-方法数量-u2"><a href="#fields-count-方法数量-u2" class="headerlink" title="fields_count 方法数量 u2"></a>fields_count 方法数量 u2</h3><p>我们发现表示方法数量的字节为0002，说明有两个方法。</p>
+<h3 id="方法解析"><a href="#方法解析" class="headerlink" title="方法解析"></a>方法解析</h3><p>方法的结构：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">method_info </span><br><span class="line">&#123; </span><br><span class="line">    u2 access_flags; </span><br><span class="line">    u2 name_index; </span><br><span class="line">    u2 descriptor_index; </span><br><span class="line">    u2 attributes_count; </span><br><span class="line">    attribute_info attributes[attributes_count]; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>属性表的结构：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">attribute_info </span><br><span class="line">&#123; </span><br><span class="line">    u2 attribute_name_index; </span><br><span class="line">    u4 attribute_length; </span><br><span class="line">    u1 info[attribute_length]; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="第一个方法："><a href="#第一个方法：" class="headerlink" title="第一个方法："></a>第一个方法：</h5><p>0x0001 表示访问标志位ACC_PUBLIC<br>0x0007 表示方法名索引为7，即’<init>‘<br>0x0008 表示方法描述符索引为8，即’()V’<br>0x0001 表示属性表数量为1<br>由上面属性表的结构，来解析这一个属性：<br>0x0009 属性名称索引为9，即’Code’<br>0x00000038 表示属性有56个字节<br>Code属性有专门的属性表，如下图所示：<br><img src="/Users/xuhao/Desktop/Code属性表结构.png" alt><br>前面6个字节我们已经解析过了，看看后面50个字节。<br>0x0002 max_stack=2<br>0x0001 max_locals=1<br>0x0000000A code_length=10<br>接下来后面10个字节(需要对照虚拟机字节码指令，详见另一篇文章)：2AB70001 2A04B500 02B1<br>0x2A aload_0 将第一个引用变量推到栈顶<br>0xB7 invokespecial 表示调用父类构造方法<br>0x00 什么都不做<br>0x01 将null推到栈顶<br>0x2A aload_0<br>0x04 iconst_1 将int型1推到栈顶<br>0xB5 putfield 为指定的类的实例变量赋值<br>0x00<br>0x02 iconst_m1 将int型-1推到栈顶<br>0xB1 return 从当前方法返回void<br>再往下看：<br>0x0000 excpetion_table_length=0<br>0x0002 attributes_count=2 Code属性表内含有两个属性<br>0x000A 第一个属性表是”LineNumberTable”<br>LineNumberTable属性表结构如下图所示：<br><img src="/Users/xuhao/Desktop/Code属性表结构.png" alt><br>再继续对照结构表来看：<br>0x0000000A 属性长度为10(即后面10个字节)<br>0x0002 line_number_table_length=2 说明有两个line_number_table，而每一个line_number_table都是有一个u2类型的start_pc（字节码行号）和一个u2类型的line_number（Java源码行号）组成<br>0x0000 start_pc=0<br>0x0003 line_number=3<br>0x0004 start_pc=0<br>0x0004 line_number=4<br>0x000B 第二个属性表是”LocalVariableTable”<br>LocalVariableTable属性表结构如下图所示：<br><img src="/Users/xuhao/Desktop/LocalVariableTable属性结构.png" alt><br>0x0000000C 属性长度为12<br>0x0001 local_variable_table_length=1<br>而local_variable_info的表结构如下图所示：<br><img src="/Users/xuhao/Desktop/local_variable_info项目结构.png" alt><br>0x0000 start_pc=0<br>0x000A length=10<br>0x000C 名称索引为12，也就是’this’<br>0x000D 描述索引为13，也就是’Lcom/cc/asmdemo/JavaDemo;’<br>0x0000 索引为0，不指向任何一个常量</init></p>
+<h5 id="第二个方法："><a href="#第二个方法：" class="headerlink" title="第二个方法："></a>第二个方法：</h5><p>0x0001 ACC_PUBLIC<br>0x000E ‘setValue’<br>0x0008 ‘()V’<br>0x0001 属性数量=1<br>0x0009 ‘Code’<br>0x0000002B 属性长度43<br>0x0000 max_stack=0<br>0x0001 max_locals=1<br>0x00000001 code_length=1<br>0xB1 return 返回void<br>0x0000 excpetion_table_length=0<br>0x0002 属性表长度为2</p>
+<h6 id="第一个属性表："><a href="#第一个属性表：" class="headerlink" title="第一个属性表："></a>第一个属性表：</h6><p>0x000A 索引为10，表示LineNumberTable<br>0x00000006 属性长度为6<br>0x0001 line_number_length = 1<br>0x0000 start_pc=0<br>0x0007 line_number=7</p>
+<h6 id="第二个属性表："><a href="#第二个属性表：" class="headerlink" title="第二个属性表："></a>第二个属性表：</h6><p>0x000B 表示LocalVariableTable<br>0x0000000C 属性长度为12<br>0x0001 local_variable_table_length=1<br>0x0000 start_pc=0<br>0x0001 length=1<br>0x000C 名称索引12，即’this’<br>0x000D 描述索引13，即’Lcom/cc/asmdemo/JavaDemo;’<br>0x0000 索引为0<br>以上就把方法都解析完成了</p>
+<h5 id="Attribute"><a href="#Attribute" class="headerlink" title="Attribute"></a>Attribute</h5><p>0x0001 属性数量为1<br>0x000F 属性名称索引为15，即’SourceFile’，SourceFile属性是用来记录该Class文件的源码文件名称<br>SourceFile的属性结构如下图所示：<br><img src="/Users/xuhao/Desktop/SourceFile属性结构.jpeg" alt><br>0x00000002 属性长度为2<br>0x0010 属性索引为16，即’JavaDemo.java’</p>
+<h4 id="最后："><a href="#最后：" class="headerlink" title="最后："></a>最后：</h4><p>Class文件的结构非常复杂，上面这个例子实际上也非常简单，仅仅是为了帮助大家更好了学习字节码的解析方法。如果需要了解更详细的方面，还需要再查阅其它更详细的资料。</p>
+<p>感谢：</p>
+<p><a href="https://www.jianshu.com/p/252f381a6bc4" target="_blank" rel="noopener">https://www.jianshu.com/p/252f381a6bc4</a></p>
+<p><a href="https://juejin.im/post/58ac086d2f301e006c3d6600" target="_blank" rel="noopener">https://juejin.im/post/58ac086d2f301e006c3d6600</a></p>
+
+                
+
+                <hr>
+                <!-- Pager -->
+                <ul class="pager">
+                    
+                    
+                        <li class="next">
+                            <a href="/2019/05/15/firstblog/" data-toggle="tooltip" data-placement="top" title="起点">Next post &rarr;</a>
+                        </li>
+                    
+                </ul>
+
+                <br>
+
+                <!--打赏-->
+                
+                <!--打赏-->
+
+                <br>
+                <!--分享-->
+                
+                    <div class="social-share" data-wechat-qrcode-helper align="center"></div>
+                    <!--  css & js -->
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/css/share.min.css">
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/js/social-share.min.js"></script>
+                
+                <!--分享-->
+                <br>                       
+                
+                <!-- require APlayer -->
+                
+
+                <!-- disqus comment start -->
+                
+                <!-- disqus comment end -->
+
+                
+				
+            </div>
+
+            <!-- Tabe of Content -->
+            <!-- Table of Contents -->
+
+                
+            <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <!-- no hr -->
+                    <h5><a href="/tags/">Tags</a></h5>
+                    <div class="tags">
+                       
+                    </div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+
+                    
+                        <li><a href="http://www.sumoon.com" target="_blank">ACE theme</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'hover',
+          placement: 'left',
+          icon: 'ℬ'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                
+                
+                
+
+                
+
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://github.com/flyxuhao">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; 徐浩 2019 
+                    <br>
+                    Powered by <a href="http://www.hexo.io">Hexo</a> 
+                    <span style="display: inline-block; margin: 0 5px;">
+                        <i class="fa fa-heart"></i>
+                    </span> 
+                    Theme by <a href="https://github.com/kinggozhang/hexo-theme-ace">ACE</a> 
+					
+					
+					<i class="fa fa-eye" id="leancounter"></i>
+					
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+
+   <script src="https://cdn.staticfile.org/jquery/2.2.4/jquery.min.js"></script>
+
+
+
+<!-- Bootstrap Core JavaScript -->
+
+   <script src="https://cdn.staticfile.org/twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js"></script>
+
+
+	<script src="/js/particles.js"></script>
+	<script src="/js/particles_config.js"></script>
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("https://xhtech.xyz/2019/05/24/Java字节码/index.html/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+<script>
+    // dynamic User by Hux
+    var _gaId = 'UA-XXXXXXXX-X';
+    var _gaDomain = 'yoursite';
+
+    // Originial
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', _gaId, _gaDomain);
+    ga('send', 'pageview');
+</script>
+
+
+
+
+<!-- Baidu Tongji -->
+
+<script>
+    // dynamic User by Hux
+    var _baId = 'xxx';
+
+    // Originial
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?" + _baId;
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+
+
+
+
+
+
+	<a id="rocket" href="#top" class=""></a>
+	<script type="text/javascript" src="/js/totop.js?v=1.0.0" async=""></script>
+    <script type="text/javascript" src="/js/toc.js?v=1.0.0" async=""></script>
+<!-- Image to hack wechat -->
+<img src="https://xhtech.xyz/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>
