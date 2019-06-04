@@ -104,6 +104,8 @@
                     <div class="post-heading" style="padding:40px">
                         <div class="tags">
                             
+                              <a class="tag" href="/tags/#Java" title="Java">Java</a>
+                            
                         </div>
                         <h1>Java字节码解读</h1>
                         <h2 class="subheading"></h2>
@@ -238,7 +240,7 @@
 <h4 id="Constant-18-0x0C-0005-0006"><a href="#Constant-18-0x0C-0005-0006" class="headerlink" title="Constant #18 0x0C 0005 0006"></a>Constant #18 0x0C 0005 0006</h4><p>0x0C 表示CONSTANT_NameAndType_info<br>0x0005 索引到第7项，也就是字段或方法名称为’value’<br>0x0006 索引到第8项，也就是字段或方法描述符为’I’</p>
 <h4 id="Constant-19-0x01-0017-636F…6D6F"><a href="#Constant-19-0x01-0017-636F…6D6F" class="headerlink" title="Constant #19 0x01 0017 636F…6D6F"></a>Constant #19 0x01 0017 636F…6D6F</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0017 UTF-8编码的字符串长度为23<br>0x636F…6D6F 表示’com/cc/asmdemo/JavaDemo’</p>
 <h4 id="Constant-20-0x01-0010-6A61…6374"><a href="#Constant-20-0x01-0010-6A61…6374" class="headerlink" title="Constant #20 0x01 0010 6A61…6374"></a>Constant #20 0x01 0010 6A61…6374</h4><p>0x01 表示CONSTANT_Utf8_info<br>0x0010 UTF-8编码的字符串长度为16<br>0x6A61…6374 表示’ java/lang/Object’</p>
-<h3 id="access-flags-访问标志-u2"><a href="#access-flags-访问标志-u2" class="headerlink" title="access_flags 访问标志 u2"></a>access_flags 访问标志 u2</h3><p>access_flags表示该Class文件的访问权限和基本属性，可以通过下表来查询：<br><img src="/2019/06/03/Java字节码解读/access_flag.png" title="access_flag"><br>可以看到当前的文件的Access_Flag为0x0021，是0x0020和0x21的并集，即表示ACC_PUBLIC和ACC_SUPER</p>
+<h3 id="access-flags-访问标志-u2"><a href="#access-flags-访问标志-u2" class="headerlink" title="access_flags 访问标志 u2"></a>access_flags 访问标志 u2</h3><p>access_flags用来标识一些类或接口层次的访问信息，可以通过下表来查询：<br><img src="/2019/06/03/Java字节码解读/access_flag.png" title="access_flag"><br>可以看到当前的文件的Access_Flag为0x0021=x0001|0x0020，是0x0020和0x0001的并集（ACC_PUBLIC和ACC_SUPER为真，其余为假，所以为这两个的并集），即表示ACC_PUBLIC和ACC_SUPER</p>
 <h3 id="this-class-类索引-u2"><a href="#this-class-类索引-u2" class="headerlink" title="this_class 类索引 u2"></a>this_class 类索引 u2</h3><p>0x0003表示索引到常量池的第三项，也就是当前类的全限定名为’com/cc/asmdemo/JavaDemo’</p>
 <h3 id="super-class-父类索引-u2"><a href="#super-class-父类索引-u2" class="headerlink" title="super_class 父类索引 u2"></a>super_class 父类索引 u2</h3><p>0x0004表示索引到常量池的第四项，也就是当父类的全限定名为’java/lang/Object’,可以知道当前类是继承自Object的</p>
 <h3 id="interfaces-count-接口数量-u2"><a href="#interfaces-count-接口数量-u2" class="headerlink" title="interfaces_count 接口数量 u2"></a>interfaces_count 接口数量 u2</h3><p>接口数量为0x0000，所以当前类没有接口</p>
@@ -318,6 +320,8 @@
                     <h5><a href="/tags/">Tags</a></h5>
                     <div class="tags">
                        
+                          <a class="tag" href="/tags/#Java" title="Java">Java</a>
+                        
                     </div>
                 </section>
                 
